@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import openpyxl
 import six
 from openpyxl.styles.colors import COLOR_INDEX, aRGB_REGEX
+from os import path
 
 from xlsx2html.format import format_cell
 
@@ -260,9 +261,19 @@ def render_data_to_html(data):
 
 
 def xlsx2html(filepath, output):
-    ws = openpyxl.load_workbook(filepath, data_only=True).active
-    data = worksheet_to_data(ws, locale='ru')
-    html = render_data_to_html(data)
+    sheets = openpyxl.load_workbook(filepath, data_only=True).worksheets
 
-    with open(output, 'wb') as f:
-        f.write(six.binary_type(html.encode('utf-8')))
+    if len(sheets) != 1:
+        html_without_ext = path.splitext(path.basename(output))[0]
+        dir_name = path.dirname(output)
+        for sheet in sheets:
+            data = worksheet_to_data(sheet)
+            html = render_data_to_html(data)
+            sheet_name = path.join(dir_name, f"{html_without_ext}_{sheet.title}.html")
+            with open(sheet_name, 'wb') as f:
+                f.write(six.binary_type(html.encode('utf-8')))
+    else:
+        data = worksheet_to_data(sheets[0])
+        html = render_data_to_html(data)
+        with open(output, 'wb') as f:
+            f.write(six.binary_type(html.encode('utf-8')))
